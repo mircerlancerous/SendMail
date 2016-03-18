@@ -1,6 +1,6 @@
 # SendMail
 
-Originally written by Vasyl Rusanovskyy but since then significantly modified. Enhancements include support for multiple recipients on one connection, pdf attachments and inline base64 images for HTML emails. Could use some updating but is a great, lightweight, reliable method for getting versatile email functionality going with little effort.
+Originally written by [Vasyl Rusanovskyy](https://github.com/Rusanovskyy) but since then significantly modified. Enhancements include support for multiple recipients on one connection, pdf attachments and inline base64 images for HTML emails. Could use some updating but is a great, lightweight, reliable method for getting versatile email functionality going with little effort.
 
  
 Usage:
