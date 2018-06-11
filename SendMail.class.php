@@ -9,13 +9,10 @@
 
 /*******************************************************************************
 
-Modified By OffTheBricks.com
-June 2011
-Changes were made to allow for multiple messages to be sent with one SMTP connection
-Sept 2013
-Added SMTP debug error output and improved error reporting
-May 2015
-Added ability to attach pdfs and insert base64 images inline into html emails
+Modified By Dave Robinson
+June 2011 - xx
+www.offthebricks.com
+https://github.com/mircerlancerous/SendMail/
 
 *******************************************************************************/
 
@@ -31,8 +28,9 @@ Class SendMail{
 	public $mail_to;
 	public $subject;
 	public $message;
+	public $altmessage;
 	public $headers = '';
-	public $ContentType = 'html';
+	public $ContentType = 'html';	//html or plain
 	public $charset = 'ISO-8859-1';//'windows-1251';
 	public $smtp_debug = true;
 	public $socket;
@@ -153,7 +151,7 @@ Class SendMail{
 		return TRUE;
 	}
 	
-	public function Send($mail_to = '', $name_to = '', $subject = '', $message = '')
+	public function Send($mail_to = '', $name_to = '', $subject = '', $message = '', $altmessage = '')
 	{
 	    $mail_to = trim($mail_to);
 	    $name_to = trim($name_to);
@@ -162,6 +160,7 @@ Class SendMail{
 	    if($mail_to!=''){$this->mail_to = stripslashes($mail_to);}
 		if($subject!=''){$this->subject = stripslashes($subject);}
 		if($message!=''){$this->message = $message;}
+		if($altmessage!=''){$this->altmessage = $altmessage;}
 
 		$validEmail = $this->validEmail($mail_to);
 		if($validEmail){
@@ -193,25 +192,18 @@ Class SendMail{
   			"From: ".trim($this->from_name)." <".trim($this->SendFromMail).">\r\n".
   			"Subject: ".$this->subject."\r\n";
   		
-    	if($this->ContentType=="plain"){
-	    	$header .= "Content-Type: text/plain; charset=".$this->charset."\r\n";
-		}
-		else{
-	    	$header .= "Content-Type: text/html; charset=".$this->charset."\r\n";
-	  	}
+    	$header .= "Content-Type: text/".$this->ContentType."; charset=".$this->charset."\r\n";
+	  	
 	  	if(mail("$name_to <$mail_to>",$this->subject,$this->message,$header)){
-		 return true;
+			return true;
 		}else{
-		 return false;
+			return false;
 		}
-  }
+  	}
 	
 	private function SMTPsend($mail_to, $name_to, $socket){
-		$SEND = '';
-		
-		
-	
-		$SEND .=   "Date: ".date("D, d M Y H:i:s") . "\r\n";
+		//build smtp message
+		$SEND .=   "Date: ".gmdate("D, d M Y H:i:s") . "\r\n";
 		$SEND .=   'Subject: =?'.$this->charset.'?B?'.base64_encode($this->subject)."=?=\r\n";
 		if ($this->headers!=''){
 			$SEND .= $this->headers."\r\n\r\n";
@@ -231,6 +223,17 @@ Class SendMail{
 			if ($this->any_attachments) {
 				$SEND .= "Content-Type: multipart/mixed; boundary=a95ed0b485e4a9b0fd4ff93f50ad06cb \r\n\r\n";
 				$SEND .= "--a95ed0b485e4a9b0fd4ff93f50ad06cb\r\n";
+			}
+			
+			if($this->altmessage){
+				$semi_rand = md5(time());
+				$SEND .= "Content-Type: multipart/alternative; boundary=$semi_rand \r\n\r\n";
+				$SEND .= "--$semi_rand\r\n";
+				$SEND .= "Content-Type: text/plain; charset=".$this->charset."\r\n";
+				$SEND .= "Content-Transfer-Encoding: 8bit\r\n";
+				$SEND .="\r\n";
+				$SEND .= $this->altmessage;
+				$SEND .= "\r\n\r\n--$semi_rand\r\n";
 			}
 			
 			$SEND .= "Content-Type: text/".$this->ContentType."; charset=".$this->charset."\r\n";
@@ -255,6 +258,7 @@ Class SendMail{
 				$quote = substr($this->message,$pos+4,1);
 				$pos += 5;
 				if(substr($this->message,$pos,5) != 'data:'){
+					$pos = strpos($this->message,"<img",$pos);
 					continue;
 				}
 				//this is a base64 image so process accordingly
